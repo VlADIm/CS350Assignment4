@@ -5,12 +5,14 @@ Henry Burns and Vladimir Malcevic
 
 Henry
 --------------------
-Input
-Writer
-Linkedlist
+
+ - Input
+ - Writer
+ - Linkedlist
 
 Vlad
 --------------------
-Reader
-Extra thread
-Output
+
+ - Reader
+ - Extra thread
+ - Output
