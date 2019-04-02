@@ -1,5 +1,5 @@
 # CS350Assignment4
-Due April 14th
+Due April 12th
 
 Henry Burns and Vladimir Malcevic
 

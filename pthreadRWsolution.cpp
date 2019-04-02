@@ -1,9 +1,14 @@
 #include <ofstream>
 #include <ifstream>
 #include <iostream>
+#include <pthread.h>
+#include <string>
+#include <string.h>
 
-int readcount, writecount;                   //(initial value = 0)
-semaphore rmutex, wmutex, readTry, resource; //(initial value = 1)
+int readcount = 0, writecount = 0;                   //(initial value = 0)
+// semaphore rmutex, wmutex, readTry, resource; //(initial value = 1)
+
+pthread_mutex_lock_t rmutex, wmutex, readTry, resource;
 
 //READER
 //reader() {
@@ -47,5 +52,84 @@ semaphore rmutex, wmutex, readTry, resource; //(initial value = 1)
 //                                if (writecount == 0)         //checks if you're the last writer
 //                                    readTry.V();               //if you're last writer, you must unlock the readers. Allows them to try enter CS for reading
 //                                    wmutex.V();                  //release exit section
-                                                          }
-                                                          
+// }
+
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+void readerHelper(FILE * fp, int reader_number, int iteration){
+
+
+
+//<ENTRY Section>
+    pthread_mutex_lock(&readTry);                                               //Indicate a reader is trying to enter
+    pthread_mutex_lock(&rmutex);                                                //lock entry section to avoid race condition with other readers
+    readcount++;                                                                //report yourself as a reader
+    if(readcount == 1){                                                         //checks if you are first reader
+        pthread_mutex_lock(&resource);                                          //if you are first reader, lock  the resource
+    }
+
+    pthread_mutex_unlock(&rmutex);                                              //release entry section for other readers
+    pthread_mutex_unlock(&readTry);                                             //indicate you are done trying to access the resource
+
+//<CRITICAL Section>
+//reading is performed
+    // counter = 0;
+    // for(i = 0; i < limit; i++){
+    //     if(data[i] % 10 == reader_number) counter++;
+    // }
+    //
+    // fprintf(fp, "Reader %d: Read %d: %d values ending in %d\n", reader_number, iteration + 1, counter, reader_number);
+
+
+//<EXIT Section>
+    pthread_mutex_lock(&rmutex);                                                //reserve exit section - avoids race condition with readers
+    readcount--;                                                                //indicate you're leaving
+    if (readcount == 0) {                                                       //checks if you are last reader leaving
+        pthrad_mutex_unlock(&resource);                                         //if last, you must release the locked resource
+        pthread_unlock_mutex(rmutex);                                           //release exit section for other readers
+    }
+}
+
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+
+void * reader(void * payload){
+
+    /* void * input is a int [2] array where:
+    *       int[0] => reader_number
+    *       int[1] => number of iterations reader reads from array
+    */
+    int reader_number = ((int *)payload[0]);
+    int limit = ((int *)payload)[1];
+
+    FILE * fp;
+    char file_name[13];
+    sprintf(file_name, "reader_%d.txt", reader);
+
+    fp = fopen(file_name, "w");
+
+    for(int i = 0; i < limit; i++){
+        reader(fp, reader_limit, i);
+    }
+
+    fclose(fp);
+}
+
+int main(int argc, char** argv, char** envp){
+
+    pthread_t reader_thread;
+
+    int iterations;
+    int reader_limit;
+
+    int payload[2] = {iterations, 1};
+
+    for(int i = 0; i < reader_limit; i++){
+        payload[1]++;
+        pthread_create(&reader_thread, NULL, reader, (void *) payload);
+    }
+
+    return 0;
+}
+/***********************************************************************************************************/
+/***********************************************************************************************************/
