@@ -7,8 +7,8 @@
 
 int readcount = 0, writecount = 0;                   //(initial value = 0)
 // semaphore rmutex, wmutex, readTry, resource; //(initial value = 1)
-
-pthread_mutex_lock_t rmutex, wmutex, readTry, resource;
+pthread_condition_t condition;
+pthread_mutex_lock_t rmutex, wmutex, readTry, resource, extraThread;
 
 //READER
 //reader() {
@@ -84,10 +84,12 @@ void readerHelper(FILE * fp, int reader_number, int iteration){
 //<EXIT Section>
     pthread_mutex_lock(&rmutex);                                                //reserve exit section - avoids race condition with readers
     readcount--;                                                                //indicate you're leaving
-    if (readcount == 0) {                                                       //checks if you are last reader leaving
-        pthrad_mutex_unlock(&resource);                                         //if last, you must release the locked resource
-        pthread_unlock_mutex(rmutex);                                           //release exit section for other readers
+    if(readcount == 0){                                                       //checks if you are last reader leaving
+        pthread_mutex_unlock(&resource);                                         //if last, you must release the locked resource
+    } else if(readcount == 1){
+        pthread_cond_signal(&condition);
     }
+    pthread_unlock_mutex(&rmutex);                                              //release exit section for other readers
 }
 
 /***********************************************************************************************************/
@@ -113,6 +115,14 @@ void * reader(void * payload){
     }
 
     fclose(fp);
+}
+
+void * extraThreadCall(void * payload){
+
+    pthread_mutex_lock(&rmutex);
+    pthread_cond_wait(&condition, &rmutex);
+    fprintf(stdout, "Almost Done!");
+    pthread_mutex_unlock(&rmutex);
 }
 
 int main(int argc, char** argv, char** envp){
