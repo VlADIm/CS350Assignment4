@@ -73,9 +73,11 @@ void readerHelper(FILE * fp, int reader_number, int iteration){
 
 //<CRITICAL Section>
 //reading is performed
+    // Linkedlist * containter = LINKEDLISTHEAD
     // counter = 0;
-    // for(i = 0; i < limit; i++){
-    //     if(data[i] % 10 == reader_number) counter++;
+    // for(i = 0; i < limit && (*containter.next) != NULL; i++){
+    //     if((*containter).data % 10 == reader_number) counter++;
+    //     containter = (*containter).next
     // }
     //
     // fprintf(fp, "Reader %d: Read %d: %d values ending in %d\n", reader_number, iteration + 1, counter, reader_number);
@@ -86,7 +88,7 @@ void readerHelper(FILE * fp, int reader_number, int iteration){
     readcount--;                                                                //indicate you're leaving
     if(readcount == 0){                                                       //checks if you are last reader leaving
         pthread_mutex_unlock(&resource);                                         //if last, you must release the locked resource
-    } else if(readcount == 1){
+    }else if(readcount == 1){
         pthread_cond_signal(&condition);
     }
     pthread_unlock_mutex(&rmutex);                                              //release exit section for other readers
