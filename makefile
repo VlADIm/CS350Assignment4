@@ -1,6 +1,7 @@
 # Declaration of variables
 CC = g++
-CC_FLAGS = -Wall -Wextra -pedantic -g 
+CC_FLAGS = -std=c++17 -Wall -Wextra -pedantic -g 
+L_FLAGS = -lpthread
  
 # File names
 EXEC = run
@@ -9,7 +10,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 	 
 	 # Main target
 $(EXEC): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $(EXEC)
+	$(CC) $(OBJECTS) -o $(EXEC) $(L_FLAGS)
 
 # To obtain object files
 %.o: %.cpp
