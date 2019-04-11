@@ -93,13 +93,14 @@ void readerHelper(FILE * fp, int reader_number, int iteration){
     int counter = 0;
     Node * position = new Node;
     position = head;
-    while(place != NULL){
+    while(position != NULL){
         if((position->data) % 10 == reader_number){counter++;}
         position = position->next;
     }
 
     fprintf(fp, "Reader %d: Read %d: %d values ending in %d\n", reader_number, iteration + 1, counter, reader_number);
 
+    doNanoSleep();
 //TODO: add wait/sleep
 
 //<EXIT Section>
@@ -116,14 +117,14 @@ void readerHelper(FILE * fp, int reader_number, int iteration){
 /***********************************************************************************************************/
 /***********************************************************************************************************/
 
-void * reader(void * payload){
+void * readList(void * payload){
 
     /* void * input is a int [2] array where:
     *       int[0] => reader_number
     *       int[1] => number of iterations reader reads from array
     */
     int reader_number = ((int *)payload[0]);
-    int limit = ((int *)payload)[1];
+    int iterations = ((int *)payload)[1];
 
     FILE * fp;
     char file_name[13];
@@ -131,8 +132,8 @@ void * reader(void * payload){
 
     fp = fopen(file_name, "w");
 
-    for(int i = 0; i < limit; i++){
-        reader(fp, reader_limit, i);
+    for(int i = 0; i < iterations; i++){
+        readerHelper(fp, reader_limit, i);
     }
 
     fclose(fp);
@@ -199,11 +200,15 @@ int main(int argc, char* argv[]){
         // Call writeList on each thread.
     }
 
+
+    int iterations = numWrites;
+    int payload[2] = {iterations, 1};
+
     for(int i = 0; i < numReaders; i++){
         // Call readList on each thread
         // The second NULL here is the list of args
-        pthread_create(&readers[i], NULL, readList, 0);
-
+        pthread_create(&readers[i], NULL, readList, (void *) payload);
+        payload[1]++;
     }
 
 
