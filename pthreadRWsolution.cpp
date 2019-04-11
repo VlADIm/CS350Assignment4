@@ -67,41 +67,41 @@ void* writeList(void* id1){
 
 void readerHelper(FILE * fp, int reader_number, int iteration){
 
-    //TODO: convert to semaphores
-
 //<ENTRY Section>
-    pthread_mutex_lock(&readTry);                                               //Indicate a reader is trying to enter
-    pthread_mutex_lock(&rmutex);                                                //lock entry section to avoid race condition with other readers
+    sem_wait(&readTry);                                               //Indicate a reader is trying to enter
+    sem_wait(&rmutex);                                                //lock entry section to avoid race condition with other readers
     readcount++;                                                                //report yourself as a reader
     if(readcount == 1){                                                         //checks if you are first reader
-        pthread_mutex_lock(&resource);                                          //if you are first reader, lock  the resource
+        sem_wait(&resource);                                          //if you are first reader, lock  the resource
     }
 
-    pthread_mutex_unlock(&rmutex);                                              //release entry section for other readers
-    pthread_mutex_unlock(&readTry);                                             //indicate you are done trying to access the resource
+    sem_post(&rmutex);                                              //release entry section for other readers
+    sem_post(&readTry);                                             //indicate you are done trying to access the resource
 
-//<CRITICAL Section> TODO: compy with data structure here
+//<CRITICAL Section>
 //reading is performed
-    // Linkedlist * containter = LINKEDLISTHEAD
-    // counter = 0;
-    // for(i = 0; i < limit && (*containter.next) != NULL; i++){
-    //     if((*containter).data % 10 == reader_number) counter++;
-    //     containter = (*containter).next
-    // }
-    //
-    // fprintf(fp, "Reader %d: Read %d: %d values ending in %d\n", reader_number, iteration + 1, counter, reader_number);
+
+    int counter = 0;
+    Node * position = new Node;
+    position = head;
+    while(place != NULL){
+        if((position->data) % 10 == reader_number){counter++;}
+        position = position->next;
+    }
+
+    fprintf(fp, "Reader %d: Read %d: %d values ending in %d\n", reader_number, iteration + 1, counter, reader_number);
 
 //TODO: add wait/sleep
 
 //<EXIT Section>
-    pthread_mutex_lock(&rmutex);                                                //reserve exit section - avoids race condition with readers
+    sem_wait(&rmutex);                                                //reserve exit section - avoids race condition with readers
     readcount--;                                                                //indicate you're leaving
     if(readcount == 0){                                                       //checks if you are last reader leaving
-        pthread_mutex_unlock(&resource);                                         //if last, you must release the locked resource
+        sem_post(&resource);                                         //if last, you must release the locked resource
     }else if(readcount == 1){
         pthread_cond_signal(&condition);
     }
-    pthread_unlock_mutex(&rmutex);                                              //release exit section for other readers
+    sem_post(&rmutex);                                              //release exit section for other readers
 }
 
 /***********************************************************************************************************/
