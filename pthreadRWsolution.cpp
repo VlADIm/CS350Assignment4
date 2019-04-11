@@ -6,14 +6,14 @@
 //In the psuedocode P means wait and V means signal
 int readcount=0, writecount=0;                   //(initial value = 0)
 sem_t rmutex, wmutex, readTry, resource; //(initial value = 1)
-int numWrites;
+int numWrites = 0;
 
 struct Node{
     int data;
     Node* next;
 };
 
-Node* head, tail;
+Node* head=NULL, *tail=NULL;
 void* readList(void * inp){
     sem_wait(&readTry);                 //Indicate a reader is trying to enter
 //<ENTRY Section>
@@ -48,6 +48,19 @@ void* writeList(void* id1){
     sem_wait(&resource); //reserve the resource for yourself - prevents other writers from simultaneously editing the shared resource
                         //writing is performed
     // TODO implement writing here in a way such that it doesnt cause problems
+    for(int i = 0; i < numWrites; i++){
+        Node* temp = new Node;
+        temp-> next = NULL;
+        temp-> data = (rand() % 100) * 10 + id;
+        if(tail == NULL){
+            head = temp;
+            tail = temp;
+        }
+        else{
+            tail->next = temp;
+            tail = temp;
+        }
+    }
 
     sem_post(&resource); //release file
 //
@@ -109,8 +122,7 @@ int main(int argc, char* argv[]){
     // Create Writer threads.
     int temp[] = {1,2,3,4,5,6,7,8,9};
     for(int i = 0; i < numWriters; i++){
-
-        pthread_create(&readers[i], NULL, writeList, (void* ) &temp[i]) ;
+        pthread_create(&writers[i], NULL, writeList, (void* ) &temp[i]) ;
         // Call writeList on each thread.
     }
 }
