@@ -4,12 +4,13 @@
 #include <string>
 #include <string.h>
 #include <semaphore.h>
+#include <time.h>
 
 /***********************************************************************************************************/
 /***********************************************************************************************************/
 
 int readcount = 0, writecount = 0, numWrites = 0;                               //(initial value = 0)
-pthread_condition_t condition;
+pthread_cond_t condition;
 sem_t rmutex, wmutex, readTry, resource; //(initial value = 1)                  //In the psuedocode P means wait and V means signal
 
 /***********************************************************************************************************/
@@ -25,7 +26,13 @@ Node* head=NULL, *tail=NULL;
 /***********************************************************************************************************/
 /***********************************************************************************************************/
 
+void doNanoSleep(){
+    nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
+}
 
+
+/***********************************************************************************************************/
+/***********************************************************************************************************/
 void* writeList(void* id1){
     int id = *(int*) id1;
 
@@ -35,10 +42,10 @@ void* writeList(void* id1){
         sem_wait(&readTry); // Lock out the readers if we want to write
     sem_post(&wmutex); //release entry section
                             //<CRITICAL Section>
-    sem_wait(&resource); //reserve the resource for yourself - prevents other writers from simultaneously editing the shared resource
                         //writing is performed
     // TODO implement writing here in a way such that it doesnt cause problems
     for(int i = 0; i < numWrites; i++){
+        sem_wait(&resource); //reserve the resource for yourself - prevents other writers from simultaneously editing the shared resource
         Node* temp = new Node;
         temp-> next = NULL;
         temp-> data = (rand() % 100) * 10 + id;
@@ -50,9 +57,10 @@ void* writeList(void* id1){
             tail->next = temp;
             tail = temp;
         }
+        sem_post(&resource); //release file
+        doNanoSleep();
     }
 
-    sem_post(&resource); //release file
 
 
     sem_wait(&wmutex); //reserve exit section
@@ -60,6 +68,7 @@ void* writeList(void* id1){
     if (writecount == 0) //checks if you're the last writer
         sem_post(&readTry); //if you're last writer, you must unlock the readers. Allows them to try enter CS for reading
     sem_post(&wmutex); //release exit section
+    return NULL;
 }
 
 /***********************************************************************************************************/
@@ -145,7 +154,6 @@ void * extraThreadCall(void * payload){
 
 int main(int argc, char* argv[]){
     int numReaders=0, numWriters=0;
-    Node* head = new Node{};
     if(argc != 4){
         //NO ARGS
     }
@@ -183,18 +191,21 @@ int main(int argc, char* argv[]){
     // Create reader threads
     pthread_t* readers = new pthread_t[numReaders];
     pthread_t* writers = new pthread_t[numWriters];
-    for(int i = 0; i < numReaders; i++){
-        // Call readList on each thread
-        // The second NULL here is the list of args
-        pthread_create(&readers[i], NULL, readList, 0);
 
-    }
     // Create Writer threads.
     int temp[] = {1,2,3,4,5,6,7,8,9};
     for(int i = 0; i < numWriters; i++){
         pthread_create(&writers[i], NULL, writeList, (void* ) &temp[i]) ;
         // Call writeList on each thread.
     }
+
+    for(int i = 0; i < numReaders; i++){
+        // Call readList on each thread
+        // The second NULL here is the list of args
+        pthread_create(&readers[i], NULL, readList, 0);
+
+    }
+
 
     return 0;
 }
