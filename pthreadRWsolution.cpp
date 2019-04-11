@@ -9,9 +9,9 @@
 /***********************************************************************************************************/
 /***********************************************************************************************************/
 
-int readcount = 0, writecount = 0, numWrites = 0;                               //(initial value = 0)
+int readcount = 0, writecount = 0, numWrites = 0;
 pthread_cond_t condition;
-sem_t rmutex, wmutex, readTry, resource; //(initial value = 1)                  //In the psuedocode P means wait and V means signal
+sem_t rmutex, wmutex, readTry, resource; //In the psuedocode P means wait and V means signal
 
 /***********************************************************************************************************/
 /***********************************************************************************************************/
@@ -26,6 +26,7 @@ Node* head=NULL, *tail=NULL;
 /***********************************************************************************************************/
 /***********************************************************************************************************/
 
+// Sleeps half a second.
 void doNanoSleep(){
     nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
 }
@@ -33,22 +34,26 @@ void doNanoSleep(){
 
 /***********************************************************************************************************/
 /***********************************************************************************************************/
-void* writeList(void* id1){
-    int id = *(int*) id1;
+void* writeList(void* info){
+    // Get thread ID
+    int id = *(int*) info;
+
 
     sem_wait(&wmutex); // Says we are writing
     writecount++;
     if (writecount == 1) // Checks if you're first writer
         sem_wait(&readTry); // Lock out the readers if we want to write
-    sem_post(&wmutex); //release entry section
-                            //<CRITICAL Section>
-                        //writing is performed
-    // TODO implement writing here in a way such that it doesnt cause problems
+    sem_post(&wmutex); // Release entry section
+
     for(int i = 0; i < numWrites; i++){
-        sem_wait(&resource); //reserve the resource for yourself - prevents other writers from simultaneously editing the shared resource
         Node* temp = new Node;
         temp-> next = NULL;
         temp-> data = (rand() % 100) * 10 + id;
+
+        sem_wait(&resource); // Reserve the resource for yourself 
+
+                            /*<CRITICAL Section>*/
+        // If this is the first node, set head and tail.
         if(tail == NULL){
             head = temp;
             tail = temp;
@@ -57,17 +62,18 @@ void* writeList(void* id1){
             tail->next = temp;
             tail = temp;
         }
-        sem_post(&resource); //release file
+        sem_post(&resource); // Let others write before we sleep.
+        // Sleep so we can see the effects
         doNanoSleep();
     }
 
 
 
-    sem_wait(&wmutex); //reserve exit section
-    writecount--; //indicate you're leaving
-    if (writecount == 0) //checks if you're the last writer
-        sem_post(&readTry); //if you're last writer, you must unlock the readers. Allows them to try enter CS for reading
-    sem_post(&wmutex); //release exit section
+    sem_wait(&wmutex); // Aquire writecount lock to leave
+    writecount--; 
+    if (writecount == 0) 
+        sem_post(&readTry); // If you're last writer, you must unlock the readers.
+    sem_post(&wmutex); // Release writecount lock
     return NULL;
 }
 
@@ -180,6 +186,8 @@ int main(int argc, char* argv[]){
             exit(1);
             // ERROR
         }
+        numWriters = temp;
+        
     }
     //init semophores
     sem_init(&rmutex, 0, 1);
